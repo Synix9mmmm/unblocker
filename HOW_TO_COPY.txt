@@ -1,0 +1,25 @@
+═══════════════════════════════════════════════════════════════════════════
+                   📋 COPY THE COMPLETE SCRIPT - SIMPLE GUIDE
+═══════════════════════════════════════════════════════════════════════════
+
+Your complete AckWare script with ALL features is ready!
+
+🎯 TO COPY THE ENTIRE SCRIPT:
+
+   Just run this command to display the full code:
+   
+   ▶️  cat /home/user/unblocker/FULL_ACKWARE.py
+   
+   Then copy all the output!
+
+📊 Script Info:
+   • Total Lines: 3,419
+   • All Features: ✅ Included
+   • Ready to Use: ✅ Yes
+
+✅ NEW FEATURES INCLUDED:
+   1. Remember Me (login saves credentials)
+   2. Silent Aim (aimbot without mouse movement)
+   3. Mouse-Following FOV Circle
+
+═══════════════════════════════════════════════════════════════════════════
