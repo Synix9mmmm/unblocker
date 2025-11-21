@@ -559,9 +559,13 @@ auto_inject = False
 menu_visible = True
 show_fov_circle = True
 
-# NEW: Silent Aim settings
+# NEW: Silent Aim settings (Hitbox Expander)
 silent_aim_enabled = False
-silent_aim_fov = 200.0
+hitbox_size_x = 20.0
+hitbox_size_y = 20.0
+hitbox_size_z = 20.0
+hitbox_transparency = 0.5
+hitbox_target_part = "HumanoidRootPart"  # Which body part to expand
 
 # NEW: Mouse-following FOV circle
 fov_follow_mouse = False
@@ -698,7 +702,11 @@ def save_config():
         'sticky_aim_enabled': sticky_aim_enabled,
         'sticky_aim_fov': sticky_aim_fov,
         'silent_aim_enabled': silent_aim_enabled,
-        'silent_aim_fov': silent_aim_fov,
+        'hitbox_size_x': hitbox_size_x,
+        'hitbox_size_y': hitbox_size_y,
+        'hitbox_size_z': hitbox_size_z,
+        'hitbox_transparency': hitbox_transparency,
+        'hitbox_target_part': hitbox_target_part,
         'fov_follow_mouse': fov_follow_mouse,
         'prediction_x': prediction_x,
         'prediction_y': prediction_y,
@@ -760,7 +768,8 @@ def load_config():
     global aimbot_enabled, aimbot_keybind, aimbot_mode, aimbot_ignoreteam, aimbot_ignoredead
     global aimbot_visibility_check, aimbot_distance_check, aimbot_max_distance, aimbot_unlock_on_death
     global aimbot_smoothing_enabled, aimbot_smoothing, aimbot_bodypart, sticky_aim_enabled
-    global sticky_aim_fov, silent_aim_enabled, silent_aim_fov, fov_follow_mouse
+    global sticky_aim_fov, silent_aim_enabled, hitbox_size_x, hitbox_size_y, hitbox_size_z
+    global hitbox_transparency, hitbox_target_part, fov_follow_mouse
     global prediction_x, prediction_y, esp_enabled, esp_ignoreteam
     global esp_ignoredead, esp_boxes, esp_names, esp_distance, esp_skeletons
     global esp_healthbar, esp_tracers, esp_chams_enabled, esp_box_color, esp_name_color, esp_tracer_color
@@ -803,7 +812,11 @@ def load_config():
         sticky_aim_enabled = config.get('sticky_aim_enabled', True)
         sticky_aim_fov = config.get('sticky_aim_fov', 200.0)
         silent_aim_enabled = config.get('silent_aim_enabled', False)
-        silent_aim_fov = config.get('silent_aim_fov', 200.0)
+        hitbox_size_x = config.get('hitbox_size_x', 20.0)
+        hitbox_size_y = config.get('hitbox_size_y', 20.0)
+        hitbox_size_z = config.get('hitbox_size_z', 20.0)
+        hitbox_transparency = config.get('hitbox_transparency', 0.5)
+        hitbox_target_part = config.get('hitbox_target_part', 'HumanoidRootPart')
         fov_follow_mouse = config.get('fov_follow_mouse', False)
         prediction_x = config.get('prediction_x', 0.0)
         prediction_y = config.get('prediction_y', 0.0)
@@ -867,8 +880,14 @@ def update_ui_from_config():
             dpg.set_value("aimbot_smoothing_slider", aimbot_smoothing)
         if dpg.does_item_exist("sticky_fov_slider"):
             dpg.set_value("sticky_fov_slider", sticky_aim_fov)
-        if dpg.does_item_exist("silent_aim_fov_slider"):
-            dpg.set_value("silent_aim_fov_slider", silent_aim_fov)
+        if dpg.does_item_exist("hitbox_size_x_slider"):
+            dpg.set_value("hitbox_size_x_slider", hitbox_size_x)
+        if dpg.does_item_exist("hitbox_size_y_slider"):
+            dpg.set_value("hitbox_size_y_slider", hitbox_size_y)
+        if dpg.does_item_exist("hitbox_size_z_slider"):
+            dpg.set_value("hitbox_size_z_slider", hitbox_size_z)
+        if dpg.does_item_exist("hitbox_transparency_slider"):
+            dpg.set_value("hitbox_transparency_slider", hitbox_transparency)
         if dpg.does_item_exist("prediction_x_slider"):
             dpg.set_value("prediction_x_slider", prediction_x)
         if dpg.does_item_exist("prediction_y_slider"):
@@ -1386,9 +1405,8 @@ def toggleFovCircle():
     esp.stdin.flush()
 
 def updateFovCircleRadius():
-    global sticky_aim_fov, silent_aim_fov, silent_aim_enabled
-    fov_value = silent_aim_fov if silent_aim_enabled else sticky_aim_fov
-    esp.stdin.write(f'fovradius{fov_value}\n')
+    global sticky_aim_fov
+    esp.stdin.write(f'fovradius{sticky_aim_fov}\n')
     esp.stdin.flush()
 
 def updateChamsColor():
@@ -1554,166 +1572,114 @@ original_camera_subject = None
 # Continue with remaining functions from original code...
 # (Include all spectate, teleport, and other helper functions)
 
-# NEW: Silent Aim Loop
-def silentAimbotLoop():
+# NEW: Silent Aim Loop (Hitbox Expander)
+def hitbox_expander_loop():
     """
-    Silent Aim - aims at targets WITHOUT moving your camera/mouse
-    Perfect for legit cheating
+    Silent Aim - Expands enemy hitboxes to make them easier to hit
+    This is the TRUE silent aim used in Roblox
     """
-    global target, target_id, aimbot_toggled, locked_target_id
-    key_pressed_last_frame = False
-
     while True:
         try:
-            if silent_aim_enabled and aimbot_enabled:
-                key_pressed_this_frame = windll.user32.GetAsyncKeyState(aimbot_keybind) & 0x8000 != 0
+            if silent_aim_enabled and injected and plrsAddr > 0:
+                try:
+                    # Get all players
+                    players = GetChildren(plrsAddr)
 
-                if aimbot_mode == "Toggle":
-                    if key_pressed_this_frame and not key_pressed_last_frame:
-                        aimbot_toggled = not aimbot_toggled
-                        if not aimbot_toggled:
-                            locked_target_id = 0
-                            target = 0
-                            target_id = 0
-                    key_pressed_last_frame = key_pressed_this_frame
-                    should_aim = aimbot_toggled
-                else:
-                    should_aim = key_pressed_this_frame
-                    if not should_aim:
-                        locked_target_id = 0
-                        target = 0
-                        target_id = 0
+                    # Get local player team if ignore team is enabled
+                    lpTeam = None
+                    if aimbot_ignoreteam:
+                        try:
+                            lpTeam = pm.read_longlong(lpAddr + int(offsets['Team'], 16))
+                        except:
+                            pass
 
-                if should_aim:
-                    current_time = time()
+                    # Loop through all players
+                    for player_addr in players:
+                        if player_addr == lpAddr:
+                            continue  # Skip local player
 
-                    # Find target within silent aim FOV
-                    if target == 0 or target_id == 0:
-                        hwnd_roblox = find_window_by_title("Roblox")
-                        if hwnd_roblox and matrixAddr > 0:
-                            try:
-                                left, top, right, bottom = get_client_rect_on_screen(hwnd_roblox)
-
-                                matrix_flat = [pm.read_float(matrixAddr + i * 4) for i in range(16)]
-                                view_proj_matrix = reshape(array(matrix_flat, dtype=float32), (4, 4))
-
-                                width = right - left
-                                height = bottom - top
-                                widthCenter = width/2
-                                heightCenter = height/2
-                                minDistance = float('inf')
-
-                                lpTeam = None
-                                if aimbot_ignoreteam:
-                                    lpTeam = pm.read_longlong(lpAddr + int(offsets['Team'], 16))
-
-                                local_pos = None
+                        try:
+                            # Check team
+                            if aimbot_ignoreteam and lpTeam:
                                 try:
-                                    local_char = pm.read_longlong(lpAddr + int(offsets['ModelInstance'], 16))
-                                    if local_char:
-                                        local_hrp = FindFirstChild(local_char, 'HumanoidRootPart')
-                                        if local_hrp:
-                                            local_prim = pm.read_longlong(local_hrp + int(offsets['Primitive'], 16))
-                                            local_pos_addr = local_prim + int(offsets['Position'], 16)
-                                            local_pos = array([
-                                                pm.read_float(local_pos_addr),
-                                                pm.read_float(local_pos_addr + 4),
-                                                pm.read_float(local_pos_addr + 8)
-                                            ], dtype=float32)
+                                    player_team = pm.read_longlong(player_addr + int(offsets['Team'], 16))
+                                    if player_team == lpTeam:
+                                        continue
                                 except:
                                     pass
 
-                                players = GetChildren(plrsAddr)
+                            # Get character
+                            char = pm.read_longlong(player_addr + int(offsets['ModelInstance'], 16))
+                            if not char:
+                                continue
 
-                                for v in players:
-                                    if v != lpAddr:
-                                        try:
-                                            if aimbot_ignoreteam and lpTeam:
-                                                team = pm.read_longlong(v + int(offsets['Team'], 16))
-                                                if team == lpTeam:
-                                                    continue
-
-                                            char = pm.read_longlong(v + int(offsets['ModelInstance'], 16))
-                                            if not char:
-                                                continue
-
-                                            body_part = FindFirstChild(char, aimbot_bodypart)
-                                            if not body_part:
-                                                body_part = FindFirstChild(char, 'Head')
-
-                                            if not body_part:
-                                                continue
-
-                                            if aimbot_ignoredead:
-                                                hum = FindFirstChildOfClass(char, 'Humanoid')
-                                                if not hum:
-                                                    continue
-                                                health = pm.read_float(hum + int(offsets['Health'], 16))
-                                                if health <= 0:
-                                                    continue
-
-                                            primitive = pm.read_longlong(body_part + int(offsets['Primitive'], 16))
-                                            targetPos = primitive + int(offsets['Position'], 16)
-
-                                            obj_pos = array([
-                                                pm.read_float(targetPos),
-                                                pm.read_float(targetPos + 4),
-                                                pm.read_float(targetPos + 8)
-                                            ], dtype=float32)
-
-                                            if aimbot_distance_check and local_pos is not None:
-                                                distance_to_target = linalg.norm(obj_pos - local_pos)
-                                                if distance_to_target > aimbot_max_distance:
-                                                    continue
-
-                                            if aimbot_visibility_check and local_pos is not None:
-                                                if not is_target_visible(obj_pos, local_pos, wsAddr):
-                                                    continue
-
-                                            screen_coords = world_to_screen_with_matrix(obj_pos, view_proj_matrix, width, height)
-                                            if screen_coords is not None:
-                                                distance = sqrt((widthCenter - screen_coords[0])**2 + (heightCenter - screen_coords[1])**2)
-
-                                                if distance <= silent_aim_fov and distance < minDistance:
-                                                    minDistance = distance
-                                                    target = targetPos
-                                                    target_id = v
-                                                    locked_target_id = v
-                                        except:
+                            # Check if dead
+                            if aimbot_ignoredead:
+                                try:
+                                    hum = FindFirstChildOfClass(char, 'Humanoid')
+                                    if hum:
+                                        health = pm.read_float(hum + int(offsets['Health'], 16))
+                                        if health <= 0:
                                             continue
+                                except:
+                                    pass
+
+                            # Find the target part (HumanoidRootPart, Head, etc.)
+                            target_part = FindFirstChild(char, hitbox_target_part)
+                            if not target_part:
+                                continue
+
+                            # Get primitive
+                            primitive = pm.read_longlong(target_part + int(offsets['Primitive'], 16))
+                            if not primitive:
+                                continue
+
+                            # Expand hitbox by writing new Size
+                            size_addr = primitive + int(offsets['PartSize'], 16)
+                            pm.write_float(size_addr, hitbox_size_x)      # X size
+                            pm.write_float(size_addr + 4, hitbox_size_y)  # Y size
+                            pm.write_float(size_addr + 8, hitbox_size_z)  # Z size
+
+                            # Set transparency (optional, makes it semi-transparent)
+                            try:
+                                transparency_addr = target_part + int(offsets['Transparency'], 16)
+                                pm.write_float(transparency_addr, hitbox_transparency)
                             except:
                                 pass
 
-                    # Silent aim: DON'T move mouse, just lock onto target silently
-                    # The ESP overlay will show you're aiming at them, but your screen won't move
-                    # This is detected by checking if target is valid
-                    if target > 0 and target_id > 0:
-                        # Target is locked - your shots will hit them even though you're not visually aiming
-                        # This is handled by the game's hit detection seeing the target
-                        sleep(0.001)
+                            # Disable collision (optional, prevents interference)
+                            try:
+                                cancollide_addr = target_part + int(offsets['CanCollide'], 16)
+                                current_flags = pm.read_bytes(cancollide_addr, 1)[0]
+                                # Clear the CanCollide bit (mask 0x8)
+                                new_flags = current_flags & ~int(offsets['CanCollideMask'], 16)
+                                pm.write_bytes(cancollide_addr, bytes([new_flags]), 1)
+                            except:
+                                pass
 
-                    sleep(0.01)
-                else:
-                    target = 0
-                    target_id = 0
-                    locked_target_id = 0
-                    sleep(0.01)
+                        except:
+                            continue
+
+                except:
+                    pass
+
+                sleep(0.1)  # Update hitboxes every 100ms
             else:
-                sleep(0.05)
+                sleep(0.2)
 
-        except Exception as e:
-            sleep(0.05)
+        except:
+            sleep(0.2)
             continue
 
-# Regular aimbot loop (non-silent)
+# Regular aimbot loop
 def aimbotLoop():
     global target, target_id, aimbot_toggled, last_target_health, locked_target_id
     key_pressed_last_frame = False
 
     while True:
         try:
-            # Only run if silent aim is disabled
-            if aimbot_enabled and not silent_aim_enabled:
+            # Aimbot always works normally, hitbox expander runs separately
+            if aimbot_enabled:
                 key_pressed_this_frame = windll.user32.GetAsyncKeyState(aimbot_keybind) & 0x8000 != 0
 
                 if aimbot_mode == "Toggle":
@@ -1957,12 +1923,26 @@ def aimbotLoop():
 def silent_aim_callback(sender, app_data):
     global silent_aim_enabled
     silent_aim_enabled = app_data
-    updateFovCircleRadius()
+    if app_data:
+        print("✅ Silent Aim (Hitbox Expander) enabled - Enemy hitboxes expanded!")
+    else:
+        print("❌ Silent Aim disabled")
 
-def silent_aim_fov_slider_callback(sender, app_data):
-    global silent_aim_fov
-    silent_aim_fov = app_data
-    updateFovCircleRadius()
+def hitbox_size_x_callback(sender, app_data):
+    global hitbox_size_x
+    hitbox_size_x = app_data
+
+def hitbox_size_y_callback(sender, app_data):
+    global hitbox_size_y
+    hitbox_size_y = app_data
+
+def hitbox_size_z_callback(sender, app_data):
+    global hitbox_size_z
+    hitbox_size_z = app_data
+
+def hitbox_transparency_callback(sender, app_data):
+    global hitbox_transparency
+    hitbox_transparency = app_data
 
 def fov_follow_mouse_callback(sender, app_data):
     global fov_follow_mouse
@@ -1971,7 +1951,7 @@ def fov_follow_mouse_callback(sender, app_data):
 
 # Start threads
 Thread(target=aimbotLoop, daemon=True).start()
-Thread(target=silentAimbotLoop, daemon=True).start()
+Thread(target=hitbox_expander_loop, daemon=True).start()
 
 # ... Continue with rest of original code (UI creation, etc.)
 # ============================================================================
@@ -3102,25 +3082,50 @@ with dpg.window(label="AIMBOT", tag="aimbot_panel", width=600, height=700,
         
         dpg.add_spacer(height=3)
         
-        # NEW: Silent Aim Section
-        with dpg.child_window(height=140, border=True):
-            dpg.add_text("Silent Aim (No Mouse Movement)", color=(255, 100, 100))
+        # NEW: Silent Aim Section (Hitbox Expander)
+        with dpg.child_window(height=230, border=True):
+            dpg.add_text("Silent Aim (Hitbox Expander)", color=(255, 100, 100))
             dpg.add_separator()
             dpg.add_spacer(height=2)
-            
-            dpg.add_checkbox(label="Enable Silent Aim", 
-                            default_value=silent_aim_enabled, 
-                            callback=silent_aim_callback, 
+
+            dpg.add_checkbox(label="Enable Silent Aim (Expand Enemy Hitboxes)",
+                            default_value=silent_aim_enabled,
+                            callback=silent_aim_callback,
                             tag="silent_aim_cb")
-            dpg.add_text("Note: Disables normal aimbot smoothing", color=(150, 150, 160))
+            dpg.add_text("Makes enemies easier to hit by expanding their hitboxes", color=(150, 150, 160))
             dpg.add_spacer(height=2)
-            dpg.add_text("Silent Aim FOV:", color=(200, 200, 200))
-            dpg.add_slider_float(default_value=silent_aim_fov, 
-                                min_value=50.0, max_value=400.0, 
-                                callback=silent_aim_fov_slider_callback, 
-                                width=-1, 
-                                tag="silent_aim_fov_slider", 
-                                format="%.0f px")
+
+            dpg.add_text("Hitbox Size X:", color=(200, 200, 200))
+            dpg.add_slider_float(default_value=hitbox_size_x,
+                                min_value=2.0, max_value=50.0,
+                                callback=hitbox_size_x_callback,
+                                width=-1,
+                                tag="hitbox_size_x_slider",
+                                format="%.1f")
+
+            dpg.add_text("Hitbox Size Y:", color=(200, 200, 200))
+            dpg.add_slider_float(default_value=hitbox_size_y,
+                                min_value=2.0, max_value=50.0,
+                                callback=hitbox_size_y_callback,
+                                width=-1,
+                                tag="hitbox_size_y_slider",
+                                format="%.1f")
+
+            dpg.add_text("Hitbox Size Z:", color=(200, 200, 200))
+            dpg.add_slider_float(default_value=hitbox_size_z,
+                                min_value=2.0, max_value=50.0,
+                                callback=hitbox_size_z_callback,
+                                width=-1,
+                                tag="hitbox_size_z_slider",
+                                format="%.1f")
+
+            dpg.add_text("Transparency (0=invisible, 1=visible):", color=(200, 200, 200))
+            dpg.add_slider_float(default_value=hitbox_transparency,
+                                min_value=0.0, max_value=1.0,
+                                callback=hitbox_transparency_callback,
+                                width=-1,
+                                tag="hitbox_transparency_slider",
+                                format="%.2f")
         
         dpg.add_spacer(height=3)
         
