@@ -1015,6 +1015,84 @@ def normalize(vec):
     norm = linalg.norm(vec)
     return vec / norm if norm != 0 else vec
 
+def find_character_part_flexible(char, preferred_part="HumanoidRootPart"):
+    """
+    Flexible character part finder for custom characters.
+    Tries multiple methods to find a valid body part.
+    """
+    # Method 1: Try the preferred part
+    try:
+        part = FindFirstChild(char, preferred_part)
+        if part:
+            return part
+    except:
+        pass
+
+    # Method 2: Try common body part names
+    common_parts = [
+        "HumanoidRootPart", "Torso", "UpperTorso", "LowerTorso",
+        "Head", "RootPart", "Root", "Body", "Main",
+        "Character", "Center", "Core", "Base"
+    ]
+
+    for part_name in common_parts:
+        try:
+            part = FindFirstChild(char, part_name)
+            if part:
+                # Verify it has a primitive (is a BasePart)
+                primitive = pm.read_longlong(part + int(offsets['Primitive'], 16))
+                if primitive:
+                    return part
+        except:
+            continue
+
+    # Method 3: Find ANY BasePart in the character (fallback)
+    try:
+        children = GetChildren(char)
+        for child in children:
+            try:
+                # Check if it has a primitive (means it's a BasePart)
+                primitive = pm.read_longlong(child + int(offsets['Primitive'], 16))
+                if primitive:
+                    # Get the size to prefer larger parts
+                    size_addr = primitive + int(offsets['PartSize'], 16)
+                    size_x = pm.read_float(size_addr)
+                    size_y = pm.read_float(size_addr + 4)
+                    size_z = pm.read_float(size_addr + 8)
+
+                    # If it's a reasonable size (not too small), use it
+                    if size_x > 0.5 and size_y > 0.5 and size_z > 0.5:
+                        return child
+            except:
+                continue
+    except:
+        pass
+
+    return None
+
+def is_character_alive(char):
+    """
+    Check if character is alive - works with both standard and custom characters
+    """
+    try:
+        # Method 1: Try standard Humanoid health check
+        hum = FindFirstChildOfClass(char, 'Humanoid')
+        if hum:
+            health = pm.read_float(hum + int(offsets['Health'], 16))
+            return health > 0
+    except:
+        pass
+
+    # Method 2: If no Humanoid, check if character has any parts (means alive)
+    try:
+        children = GetChildren(char)
+        return len(children) > 0
+    except:
+        pass
+
+    # Method 3: Assume alive if we can't determine
+    return True
+
 def calculate_velocity(target_id, current_pos, current_time):
     global target_positions, target_last_update, target_velocities
 
@@ -1613,19 +1691,13 @@ def hitbox_expander_loop():
                             if not char:
                                 continue
 
-                            # Check if dead
+                            # Check if dead (works with custom characters)
                             if aimbot_ignoredead:
-                                try:
-                                    hum = FindFirstChildOfClass(char, 'Humanoid')
-                                    if hum:
-                                        health = pm.read_float(hum + int(offsets['Health'], 16))
-                                        if health <= 0:
-                                            continue
-                                except:
-                                    pass
+                                if not is_character_alive(char):
+                                    continue
 
-                            # Find the target part (HumanoidRootPart, Head, etc.)
-                            target_part = FindFirstChild(char, hitbox_target_part)
+                            # Find the target part (flexible for custom characters)
+                            target_part = find_character_part_flexible(char, hitbox_target_part)
                             if not target_part:
                                 continue
 
@@ -1716,9 +1788,8 @@ def aimbotLoop():
                                             sleep(0.01)
                                             continue
 
-                                body_part = FindFirstChild(char, aimbot_bodypart)
-                                if not body_part:
-                                    body_part = FindFirstChild(char, 'Head')
+                                # Use flexible character detection
+                                body_part = find_character_part_flexible(char, aimbot_bodypart)
 
                                 if body_part:
                                     primitive = pm.read_longlong(body_part + int(offsets['Primitive'], 16))
@@ -1822,7 +1893,7 @@ def aimbotLoop():
                                 try:
                                     local_char = pm.read_longlong(lpAddr + int(offsets['ModelInstance'], 16))
                                     if local_char:
-                                        local_hrp = FindFirstChild(local_char, 'HumanoidRootPart')
+                                        local_hrp = find_character_part_flexible(local_char, 'HumanoidRootPart')
                                         if local_hrp:
                                             local_prim = pm.read_longlong(local_hrp + int(offsets['Primitive'], 16))
                                             local_pos_addr = local_prim + int(offsets['Position'], 16)
@@ -1848,19 +1919,14 @@ def aimbotLoop():
                                             if not char:
                                                 continue
 
-                                            body_part = FindFirstChild(char, aimbot_bodypart)
-                                            if not body_part:
-                                                body_part = FindFirstChild(char, 'Head')
+                                            # Use flexible character detection
+                                            body_part = find_character_part_flexible(char, aimbot_bodypart)
 
                                             if not body_part:
                                                 continue
 
                                             if aimbot_ignoredead:
-                                                hum = FindFirstChildOfClass(char, 'Humanoid')
-                                                if not hum:
-                                                    continue
-                                                health = pm.read_float(hum + int(offsets['Health'], 16))
-                                                if health <= 0:
+                                                if not is_character_alive(char):
                                                     continue
 
                                             primitive = pm.read_longlong(body_part + int(offsets['Primitive'], 16))
@@ -2424,7 +2490,7 @@ def teleport_to_player():
             print("Target character not found!")
             return
         
-        target_hrp = FindFirstChild(target_char, 'HumanoidRootPart')
+        target_hrp = find_character_part_flexible(target_char, 'HumanoidRootPart')
         if not target_hrp:
             print("Target HRP not found!")
             return
@@ -2441,9 +2507,9 @@ def teleport_to_player():
             print("Your character not found!")
             return
             
-        hrp = FindFirstChild(char, 'HumanoidRootPart')
+        hrp = find_character_part_flexible(char, 'HumanoidRootPart')
         if not hrp:
-            print("Your HRP not found!")
+            print("Your character part not found!")
             return
             
         primitive = pm.read_longlong(hrp + int(offsets['Primitive'], 16))
@@ -2481,7 +2547,7 @@ def walkspeed_loop():
                 try:
                     char = pm.read_longlong(lpAddr + int(offsets['ModelInstance'], 16))
                     if char:
-                        hrp = FindFirstChild(char, 'HumanoidRootPart')
+                        hrp = find_character_part_flexible(char, 'HumanoidRootPart')
                         if hrp:
                             hum = FindFirstChildOfClass(char, 'Humanoid')
                             if hum:
@@ -2561,11 +2627,11 @@ def infinite_jump_loop():
                     try:
                         char = pm.read_longlong(lpAddr + int(offsets['ModelInstance'], 16))
                         if char:
-                            hrp = FindFirstChild(char, 'HumanoidRootPart')
+                            hrp = find_character_part_flexible(char, 'HumanoidRootPart')
                             if hrp:
                                 primitive = pm.read_longlong(hrp + int(offsets['Primitive'], 16))
                                 velocity_addr = primitive + int(offsets['Velocity'], 16)
-                                
+
                                 pm.write_float(velocity_addr + 4, 50.0)
                     except:
                         pass
@@ -2643,7 +2709,7 @@ def ctrl_click_teleport_loop():
                             left_click_last = left_click_now
                             continue
                         
-                        hrp = FindFirstChild(char, 'HumanoidRootPart')
+                        hrp = find_character_part_flexible(char, 'HumanoidRootPart')
                         if not hrp:
                             left_click_last = left_click_now
                             continue
@@ -2760,61 +2826,58 @@ def triggerbot_loop():
                                     
                                     player_name = ReadRobloxString(player + int(offsets['Name'], 16))
                                     if player_name:
-                                        char = FindFirstChild(player, player_name)
+                                        char = pm.read_longlong(player + int(offsets['ModelInstance'], 16))
                                         if char:
                                             if triggerbot_ignore_dead:
-                                                try:
-                                                    hum = FindFirstChildOfClass(char, 'Humanoid')
-                                                    if hum:
-                                                        health = pm.read_float(hum + int(offsets['Health'], 16))
-                                                        if health <= 0:
-                                                            current += 8
-                                                            continue
-                                                except:
-                                                    pass
-                                            
-                                            body_parts = [
-                                                'Head', 'Torso', 'UpperTorso', 'LowerTorso',
-                                                'LeftUpperArm', 'RightUpperArm', 
-                                                'LeftLowerArm', 'RightLowerArm',
-                                                'LeftUpperLeg', 'RightUpperLeg',
-                                                'LeftLowerLeg', 'RightLowerLeg',
-                                                'LeftHand', 'RightHand',
-                                                'LeftFoot', 'RightFoot'
-                                            ]
-                                            
-                                            for part_name in body_parts:
-                                                try:
-                                                    part = FindFirstChild(char, part_name)
-                                                    if part:
-                                                        primitive = pm.read_longlong(part + int(offsets['Primitive'], 16))
+                                                if not is_character_alive(char):
+                                                    current += 8
+                                                    continue
+
+                                            # Get all character parts (works with custom characters)
+                                            body_parts_to_check = []
+                                            try:
+                                                char_children = GetChildren(char)
+                                                for child in char_children:
+                                                    try:
+                                                        # Check if it's a BasePart
+                                                        primitive = pm.read_longlong(child + int(offsets['Primitive'], 16))
                                                         if primitive:
-                                                            px = pm.read_float(primitive + int(offsets['Position'], 16))
-                                                            py = pm.read_float(primitive + int(offsets['Position'], 16) + 4)
-                                                            pz = pm.read_float(primitive + int(offsets['Position'], 16) + 8)
-                                                            
-                                                            dx = px - cam_x
-                                                            dy = py - cam_y
-                                                            dz = pz - cam_z
-                                                            
-                                                            dist = sqrt(dx*dx + dy*dy + dz*dz)
-                                                            
-                                                            if dist < 1:
-                                                                continue
-                                                            
-                                                            dx /= dist
-                                                            dy /= dist
-                                                            dz /= dist
-                                                            
-                                                            dot = look_x * dx + look_y * dy + look_z * dz
-                                                            
-                                                            if dot > 0.9994:
-                                                                if triggerbot_visibility_check:
-                                                                    if dist > 500:
-                                                                        continue
-                                                                
-                                                                target_found = True
-                                                                break
+                                                            body_parts_to_check.append(child)
+                                                    except:
+                                                        continue
+                                            except:
+                                                pass
+
+                                            for part in body_parts_to_check:
+                                                try:
+                                                    primitive = pm.read_longlong(part + int(offsets['Primitive'], 16))
+                                                    if primitive:
+                                                        px = pm.read_float(primitive + int(offsets['Position'], 16))
+                                                        py = pm.read_float(primitive + int(offsets['Position'], 16) + 4)
+                                                        pz = pm.read_float(primitive + int(offsets['Position'], 16) + 8)
+
+                                                        dx = px - cam_x
+                                                        dy = py - cam_y
+                                                        dz = pz - cam_z
+
+                                                        dist = sqrt(dx*dx + dy*dy + dz*dz)
+
+                                                        if dist < 1:
+                                                            continue
+
+                                                        dx /= dist
+                                                        dy /= dist
+                                                        dz /= dist
+
+                                                        dot = look_x * dx + look_y * dy + look_z * dz
+
+                                                        if dot > 0.9994:
+                                                            if triggerbot_visibility_check:
+                                                                if dist > 500:
+                                                                    continue
+
+                                                            target_found = True
+                                                            break
                                                 except:
                                                     continue
                                             
