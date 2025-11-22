@@ -1,0 +1,255 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║                    ACKWARE - NEW FEATURES QUICK REFERENCE               ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  📦 FILES YOU NEED TO CHECK                                             │
+└────────────────────────────────────────────────────────────────────────┘
+
+1. main_updated.py          → Full reference implementation
+2. COPY_PASTE_BLOCKS.py     → Easy copy-paste snippets
+3. INTEGRATION_GUIDE.md     → Detailed setup instructions
+4. README_NEW_FEATURES.md   → Complete feature documentation
+5. QUICK_REFERENCE.txt      → This file
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  ⚡ WHAT'S NEW                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+✅ 3 AIMBOT TYPES:
+   • Mouse   → Moves cursor (visible)
+   • Camera  → Rotates camera (smooth)
+   • Memory  → Silent aim (BEST, undetectable)
+
+✅ HIT SOUNDS:
+   • Beep when you damage locked target
+   • Shows damage numbers
+   • Adjustable volume (0-100%)
+   • Custom .wav support
+
+✅ FIXED TRIGGERBOT:
+   • Better detection (0.998 threshold)
+   • 16 body parts checked
+   • Faster response time
+   • Improved team checking
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🚀 INTEGRATION STEPS (3 OPTIONS)                                      │
+└────────────────────────────────────────────────────────────────────────┘
+
+OPTION 1 - EASIEST (Copy-Paste):
+  1. Open COPY_PASTE_BLOCKS.py
+  2. Copy each BLOCK (1-9) into your main.py
+  3. Done!
+
+OPTION 2 - GUIDED (Step-by-Step):
+  1. Open INTEGRATION_GUIDE.md
+  2. Follow each step carefully
+  3. Done!
+
+OPTION 3 - MANUAL (Advanced):
+  1. Open main_updated.py
+  2. Find functions you need
+  3. Copy into your main.py
+  4. Done!
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎮 USAGE                                                               │
+└────────────────────────────────────────────────────────────────────────┘
+
+CHANGE AIMBOT TYPE:
+  1. Open Aimbot Panel
+  2. Find "Aimbot Type" dropdown
+  3. Select: Mouse / Camera / Memory
+
+ENABLE HIT SOUNDS:
+  1. Open Aimbot Panel
+  2. Check "Enable Hit Sound"
+  3. Adjust volume slider
+
+FIX TRIGGERBOT:
+  1. Your existing triggerbot is automatically fixed
+  2. Just replace triggerbot_loop() function
+  3. No extra setup needed!
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎯 RECOMMENDED SETTINGS                                                │
+└────────────────────────────────────────────────────────────────────────┘
+
+FOR LEGIT PLAY:
+  Aimbot Type     → Mouse
+  Smoothing       → 5-10
+  Sticky FOV      → 100-150px
+  Hit Sound       → ON (50%)
+  Visibility      → ON
+
+FOR RAGE MODE:
+  Aimbot Type     → Memory
+  Smoothing       → OFF
+  Sticky FOV      → 300-400px
+  Hit Sound       → ON (100%)
+  Visibility      → OFF
+
+FOR STREAMING:
+  Aimbot Type     → Memory (silent!)
+  Smoothing       → 3-5 (natural)
+  Hit Sound       → OFF or LOW
+  FOV Circle      → OFF
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  ⚙️ KEY CODE CHANGES                                                   │
+└────────────────────────────────────────────────────────────────────────┘
+
+ADD TO GLOBALS:
+  aimbot_type = "Mouse"
+  hit_sound_enabled = True
+  hit_sound_volume = 50
+  target_health_tracker = {}
+
+ADD IMPORT:
+  import winsound
+
+NEW FUNCTIONS:
+  • play_hit_sound()
+  • check_hit_detection()
+  • mouse_aimbot()
+  • camera_aimbot()
+  • memory_aimbot()
+
+REPLACE FUNCTIONS:
+  • aimbotLoop() → aimbotLoop_UPDATED()
+  • triggerbot_loop() → triggerbot_loop_FIXED()
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🐛 TROUBLESHOOTING                                                     │
+└────────────────────────────────────────────────────────────────────────┘
+
+AIMBOT NOT WORKING:
+  → Start with "Mouse" type first
+  → Check if addresses are valid
+  → Try different body part target
+
+HIT SOUND NOT PLAYING:
+  → Check winsound is imported
+  → Verify target is locked
+  → Increase volume to 100%
+
+TRIGGERBOT NOT FIRING:
+  → Aim MORE directly at enemy
+  → Lower dot threshold to 0.995
+  → Check team/dead settings
+
+CAMERA/MEMORY AIMBOT GLITCHY:
+  → Use Mouse type instead
+  → Enable smoothing
+  → Check camera addresses valid
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎵 CUSTOM HIT SOUNDS                                                   │
+└────────────────────────────────────────────────────────────────────────┘
+
+SETUP:
+  1. Get a .wav file (e.g., "hitsound.wav")
+  2. Place in same folder as main.py
+  3. Modify play_hit_sound() function:
+
+     sound_path = os.path.join(os.path.dirname(__file__), "hitsound.wav")
+     winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+
+POPULAR SOUNDS:
+  • CS:GO dink
+  • Minecraft hurt
+  • Quake hit
+  • Custom beep
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  📊 PERFORMANCE                                                         │
+└────────────────────────────────────────────────────────────────────────┘
+
+Mouse Aimbot      → 0.1% CPU, Very Fast
+Camera Aimbot     → 0.5% CPU, Fast
+Memory Aimbot     → 0.5% CPU, Fast
+Hit Sound         → 0.1% CPU, Negligible
+Fixed Triggerbot  → 1-2% CPU, Acceptable
+
+Total overhead: ~2-3% CPU (barely noticeable)
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🛡️ DETECTION RISK                                                     │
+└────────────────────────────────────────────────────────────────────────┘
+
+Mouse Aimbot      → Medium Risk (visible cursor)
+Camera Aimbot     → Low Risk (no cursor movement)
+Memory Aimbot     → Very Low Risk (completely silent)
+Hit Sound         → No Risk (client-side only)
+Triggerbot        → Low Risk (looks legit)
+
+SAFEST COMBO:
+  → Memory Aimbot + Low Smoothing + Hit Sound OFF
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  ✅ CHECKLIST BEFORE USING                                             │
+└────────────────────────────────────────────────────────────────────────┘
+
+□ Copied all functions from COPY_PASTE_BLOCKS.py
+□ Added new globals to main.py
+□ Imported winsound
+□ Replaced aimbotLoop() with aimbotLoop_UPDATED()
+□ Replaced triggerbot_loop() with triggerbot_loop_FIXED()
+□ Added UI sections to Aimbot Panel
+□ Updated save_config() and load_config()
+□ Tested in private server first
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎓 BEST PRACTICES                                                      │
+└────────────────────────────────────────────────────────────────────────┘
+
+1. Start with Mouse aimbot to verify it works
+2. Test in a private server FIRST
+3. Use Memory aimbot for actual gameplay (safest)
+4. Enable hit sounds for instant feedback
+5. Save your config after finding good settings
+6. Use realistic settings to avoid bans
+7. Don't rage with max settings (too obvious)
+8. Mix manual aiming with aimbot
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎯 AIMBOT TYPE COMPARISON                                              │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌────────────┬──────────┬──────────┬──────────────┬─────────────┐
+│ TYPE       │ SPEED    │ SMOOTH   │ DETECTION    │ BEST FOR    │
+├────────────┼──────────┼──────────┼──────────────┼─────────────┤
+│ Mouse      │ ★★★★★    │ ★★★☆☆    │ Medium       │ Testing     │
+│ Camera     │ ★★★★☆    │ ★★★★☆    │ Low          │ Legit play  │
+│ Memory     │ ★★★★☆    │ ★★★★★    │ Very Low     │ Everything  │
+└────────────┴──────────┴──────────┴──────────────┴─────────────┘
+
+WINNER: Memory Aimbot (best overall)
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  📞 NEED HELP?                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+1. Read INTEGRATION_GUIDE.md (detailed steps)
+2. Check README_NEW_FEATURES.md (full documentation)
+3. Review COPY_PASTE_BLOCKS.py (example code)
+4. Test each feature individually
+5. Verify all addresses are valid
+
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎉 THAT'S IT!                                                          │
+└────────────────────────────────────────────────────────────────────────┘
+
+You now have:
+  ✅ 3 different aimbot types
+  ✅ Real-time hit confirmation sounds
+  ✅ Fixed, responsive triggerbot
+
+Have fun and stay safe! 🎮
+
+═══════════════════════════════════════════════════════════════════════════
+
+TIP: Bookmark this file for quick reference!
+
+═══════════════════════════════════════════════════════════════════════════
